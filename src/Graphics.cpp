@@ -441,7 +441,7 @@ void txtRndr(const char *text, double x, double y, int pixSize, bool center, RGB
 	sf::Text txt;
 	txt.setFont(font);
 	txt.setCharacterSize(pixSize); // in pixels, not points!
-	txt.setColor(sf::Color(color.r, color.g, color.b, alpha*255));
+	txt.setFillColor(sf::Color(color.r, color.g, color.b, alpha*255));
 	txt.setString(text);
 
 	if (center)

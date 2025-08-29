@@ -263,23 +263,23 @@ void dsply()
 	{
 	case RNDR:
 		statusTxt.setString("Rendering...");
-		statusTxt.setColor(sf::Color::Blue);
+		statusTxt.setFillColor(sf::Color::Blue);
 		break;
 
 	case PLAY:
 		statusTxt.setString("Play");
-		statusTxt.setColor(sf::Color::Cyan);
+		statusTxt.setFillColor(sf::Color::Cyan);
 		break;
 
 	case PAUSE:
 	case RFSH:
 		statusTxt.setString("Pause");
-		statusTxt.setColor(sf::Color::Cyan);
+		statusTxt.setFillColor(sf::Color::Cyan);
 		break;
 
 	case SAVE:
 		statusTxt.setString("Saving...");
-		statusTxt.setColor(sf::Color::Green);
+		statusTxt.setFillColor(sf::Color::Green);
 		break;
 	}
 
