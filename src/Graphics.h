@@ -1,1 +1,57 @@
-#include "FluidSim.h"#ifndef GRAPHICS_H#define GRAPHICS_Hconst int RNDR_TYPE=1; //what type of data to render	//1 - direction - direction (color) + velocity (intensity) + density (brightness)	//2 - velocity - velocity (color) + density (brightness)	//3 - density - density (brightness) (black and white)const bool AVG_DATA_RNDR=0; //if to use average data collected over all the frames	const double BASE_DX_RNDR=INIT_DX*1, BASE_DY_RNDR=INIT_DY*1; //what velocity will be rendered as no movementconst bool CLSN_EDGE_RNDR=1; //if to render collision edgesconst double CLSN_EDGE_THICK=3; //thickness of collision edges (if rendered)const bool FRCE_ON_EDGES_RNDR=0; //if to render the force exerted on the edges (otherwise renders edges as solid color)const double CLSN_EDGE_FRCE_FCTR=24; //what to multiply force by when rendering it on collision lines; not sure what units its inconst bool CLSN_EDGE_VERTS_RNDR=0; //if to render the vertices of collision edges (only has effect when rendering collision edges)const bool INPT_PIX_MAP_RNDR=0; //if to render the programs interpretation of the input imageconst bool OBJ_DATA_RNDR=0; //render basic data about each object (right now just its drag)const bool FLOW_LINES_RNDR=0; //if to render the flow linesconst double MAX_FLOW_LINE_THICK=4; //thickness of the flow lines when density is MAX_RNDR_DNSTY (flow line thickness not clamped at this)const RGBpix INPT_PIX_MAP_CLR={128, 128, 128};//const RGBpix CLOSE_TO_EDGE_CLR={0, 255, 255};const RGBpix FLOW_LINES_CLR={255, 64, 255};const RGBpix CLSN_EDGE_CLR={0, 255, 255};const RGBpix VERT_CLR={255, 255, 255};const RGBpix TXT_CLR={0, 255, 128};const RGBpix BLACK={0, 0, 0};const RGBpix WHITE={255, 255, 255};const int IMG_WDTH=640, IMG_HGHT=IMG_WDTH*HGHT/WDTH; //res of the renderconst double MAX_RNDR_SPD=dst(INIT_DX, INIT_DY)*0.2; //what will show as max speed (anything higher will be clamped)const double MAX_RNDR_DNSTY=STRT_DNSTY*5; //what will show as max density (anything higher will be clamped)const int FLOW_LINE_NUM=12; //the number of particle flow linesextern RGBpix image[FRAME_NUM][IMG_HGHT][IMG_WDTH];extern bool inptPixMap[IMG_HGHT][IMG_WDTH]; //the result of ShapeLoaderextern WidapImage drawImage; //an image to draw to, is updated to the current frame automaticallyextern int currentFrame;void rndr(); //calls all the other render functionsvoid rndrInit(); //init the render texture and maybe other thingsvoid drctnRndr(); //uses rainbow colors to show movement direction and velocityvoid avgDrctnRndr(); //uses rainbow colors to show average movement direction and velocityvoid flowLinesRndr(); //renders lines to show particle flowvoid velRndr(); //shows deferent colors based on speedvoid avgVelRndr(); //shows deferent colors based on speedvoid dnstyRndr(); //shows deferent colors based on speedvoid avgDnstyRndr(); //shows deferent colors based on speedvoid inptPixMapRndr();	//overlays the existing image with the input pixmap (what we created the shape from)void objDataRndr(); //shows box around objects and data about themvoid txtRndr(const char *text, double x=0, double y=0, int pixSize=24, bool center=0, RGBpix color=WHITE, double alpha=1, RGBpix bkndClr=BLACK, double bkndAlpha=0);void clsnEdgeRndr();void sfmlTxtrCmpst();#endif // GRAPHICS_H
+#include "FluidSim.h"
+
+#ifndef GRAPHICS_H
+#define GRAPHICS_H
+
+const int RNDR_TYPE=1; //what type of data to render
+	//1 - direction - direction (color) + velocity (intensity) + density (brightness)
+	//2 - velocity - velocity (color) + density (brightness)
+	//3 - density - density (brightness) (black and white)
+const bool AVG_DATA_RNDR=0; //if to use average data collected over all the frames
+const double BASE_DX_RNDR=INIT_DX*1, BASE_DY_RNDR=INIT_DY*1; //what velocity will be rendered as no movement
+const bool CLSN_EDGE_RNDR=1; //if to render collision edges
+const double CLSN_EDGE_THICK=3; //thickness of collision edges (if rendered)
+const bool FRCE_ON_EDGES_RNDR=0; //if to render the force exerted on the edges (otherwise renders edges as solid color)
+const double CLSN_EDGE_FRCE_FCTR=24; //what to multiply force by when rendering it on collision lines; not sure what units its in
+const bool CLSN_EDGE_VERTS_RNDR=0; //if to render the vertices of collision edges (only has effect when rendering collision edges)
+const bool INPT_PIX_MAP_RNDR=0; //if to render the programs interpretation of the input image
+const bool OBJ_DATA_RNDR=0; //render basic data about each object (right now just its drag)
+const bool FLOW_LINES_RNDR=0; //if to render the flow lines
+const double MAX_FLOW_LINE_THICK=4; //thickness of the flow lines when density is MAX_RNDR_DNSTY (flow line thickness not clamped at this)
+
+const RGBpix INPT_PIX_MAP_CLR={128, 128, 128};
+//const RGBpix CLOSE_TO_EDGE_CLR={0, 255, 255};
+const RGBpix FLOW_LINES_CLR={255, 64, 255};
+const RGBpix CLSN_EDGE_CLR={0, 255, 255};
+const RGBpix VERT_CLR={255, 255, 255};
+const RGBpix TXT_CLR={0, 255, 128};
+
+const RGBpix BLACK={0, 0, 0};
+const RGBpix WHITE={255, 255, 255};
+
+const int IMG_WDTH=640, IMG_HGHT=IMG_WDTH*HGHT/WDTH; //res of the render
+const double MAX_RNDR_SPD=dst(INIT_DX, INIT_DY)*0.2; //what will show as max speed (anything higher will be clamped)
+const double MAX_RNDR_DNSTY=STRT_DNSTY*5; //what will show as max density (anything higher will be clamped)
+const int FLOW_LINE_NUM=12; //the number of particle flow lines
+
+extern RGBpix image[FRAME_NUM][IMG_HGHT][IMG_WDTH];
+extern bool inptPixMap[IMG_HGHT][IMG_WDTH]; //the result of ShapeLoader
+extern WidapImage drawImage; //an image to draw to, is updated to the current frame automatically
+extern int currentFrame;
+
+void rndr(); //calls all the other render functions
+void rndrInit(); //init the render texture and maybe other things
+void drctnRndr(); //uses rainbow colors to show movement direction and velocity
+void avgDrctnRndr(); //uses rainbow colors to show average movement direction and velocity
+void flowLinesRndr(); //renders lines to show particle flow
+void velRndr(); //shows deferent colors based on speed
+void avgVelRndr(); //shows deferent colors based on speed
+void dnstyRndr(); //shows deferent colors based on speed
+void avgDnstyRndr(); //shows deferent colors based on speed
+void inptPixMapRndr();	//overlays the existing image with the input pixmap (what we created the shape from)
+void objDataRndr(); //shows box around objects and data about them
+void txtRndr(const char *text, double x=0, double y=0, int pixSize=24, bool center=0, RGBpix color=WHITE, double alpha=1, RGBpix bkndClr=BLACK, double bkndAlpha=0);
+void clsnEdgeRndr();
+void sfmlTxtrCmpst();
+
+#endif // GRAPHICS_H

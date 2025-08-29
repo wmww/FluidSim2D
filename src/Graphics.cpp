@@ -1,3 +1,499 @@
-#include "Graphics.h"#include "Particle.h"#include "ShapeLoader.h"#include <SFML/Graphics.hpp>RGBpix image[FRAME_NUM][IMG_HGHT][IMG_WDTH];bool inptPixMap[IMG_HGHT][IMG_WDTH]; //the result of ShapeLoaderWidapImage drawImage(IMG_WDTH, IMG_HGHT, &image[0][0][0]); //an image to draw to, is updated to the current frame automaticallysf::RenderTexture sfmlTxtr; //used for rendering textextern sf::Font font;void rndr(){	if (RNDR_TYPE==1)	{		if (!AVG_DATA_RNDR)			drctnRndr();		else			avgDrctnRndr();	}	else if (RNDR_TYPE==2)	{		if (!AVG_DATA_RNDR)			velRndr();		else			avgVelRndr();		}	else if (RNDR_TYPE==3)	{		if (!AVG_DATA_RNDR)			dnstyRndr();		else			avgDnstyRndr();		}	else		std::cout << "!! RNDR_TYPE invalid !!\n";		if (CLSN_EDGE_RNDR)		clsnEdgeRndr();		if (INPT_PIX_MAP_RNDR)		inptPixMapRndr();		if (OBJ_DATA_RNDR)		objDataRndr();		if (FLOW_LINES_RNDR)		flowLinesRndr();		sfmlTxtrCmpst();		//drawImage.circle(300, 200, 5, clr(255, 255, 255));	//drawImage.line(301, 200, 301, 400, 1, clr(255, 0, 255));	//image[currentFrame][200][300]=clr(0, 255, 255);}void rndrInit(){	sfmlTxtr.create(IMG_WDTH, IMG_HGHT);	sfmlTxtr.clear(sf::Color::Transparent);	sfmlTxtr.setSmooth(0);}void drctnRndr() //uses rainbow colors to show movement direction and velocity{	int x, y;	int xLoc, yLoc;		double d, dx, dy;	double dist, ang;		for (y=0; y<IMG_HGHT; ++y)	{		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);				for (x=0; x<IMG_WDTH; ++x)		{			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);						d=area[yLoc][xLoc].d;						if (d)			{				dx=area[yLoc][xLoc].dx/d-BASE_DX_RNDR;				dy=area[yLoc][xLoc].dy/d-BASE_DY_RNDR;			}			else			{				dx=0; dy=0;			}						dist=dst(dx, dy);						ang=rad2deg(atan2(dy, dx))+180;						image[cycle][y][x]=hsl2rgb(clrHSL(ang*4.25, clamp(dist*255/MAX_RNDR_SPD, 0, 255), d*255/MAX_RNDR_DNSTY));		}	}}void avgDrctnRndr() //uses rainbow colors to show average movement direction and velocity{	int x, y;	int xLoc, yLoc;		double d, dx, dy;	double dist, ang;		for (y=0; y<IMG_HGHT; ++y)	{		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);				for (x=0; x<IMG_WDTH; ++x)		{			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);						d=area[yLoc][xLoc].dAvg;						if (d)			{				dx=area[yLoc][xLoc].dxAvg/area[yLoc][xLoc].dAvg-BASE_DX_RNDR;				dy=area[yLoc][xLoc].dyAvg/area[yLoc][xLoc].dAvg-BASE_DY_RNDR;			}			else			{				dx=0; dy=0;			}						dist=dst(dx, dy);						ang=rad2deg(atan2(dy, dx));						image[cycle][y][x]=hsl2rgb(clrHSL(ang*4.25, clamp(dist*255/MAX_RNDR_SPD, 0, 255), d*255/(MAX_RNDR_DNSTY*(cycle+1))));		}	}}void velRndr() //shows deferent colors based on speed{	int x, y;	int xLoc, yLoc;		double d, dx, dy;	double dist;		for (y=0; y<IMG_HGHT; ++y)	{		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);				for (x=0; x<IMG_WDTH; ++x)		{			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);						d=area[yLoc][xLoc].d;						if (d)			{				dx=area[yLoc][xLoc].dx/area[yLoc][xLoc].d-BASE_DX_RNDR;				dy=area[yLoc][xLoc].dy/area[yLoc][xLoc].d-BASE_DY_RNDR;			}			else			{				dx=0; dy=0;			}						dist=dst(dx, dy);						image[cycle][y][x]=hsl2rgb(clrHSL(grdnt(clamp(dist, 0, MAX_RNDR_SPD), 0, MAX_RNDR_SPD, 255*4, 0), 255, d*255/MAX_RNDR_DNSTY));		}	}}void avgVelRndr() //shows deferent colors based on speed{	int x, y;	int xLoc, yLoc;		double d, dx, dy;	double dist;		for (y=0; y<IMG_HGHT; ++y)	{		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);				for (x=0; x<IMG_WDTH; ++x)		{			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);						d=area[yLoc][xLoc].dAvg;						if (d)			{				dx=area[yLoc][xLoc].dxAvg/d-BASE_DX_RNDR;				dy=area[yLoc][xLoc].dyAvg/d-BASE_DY_RNDR;				d/=cycle+1;			}			else			{				dx=0; dy=0;			}						dist=dst(dx, dy);						image[cycle][y][x]=hsl2rgb(clrHSL(grdnt(clamp(dist, 0, MAX_RNDR_SPD), 0, MAX_RNDR_SPD, 255*4, 0), 255, grdnt(sqrt(clamp(d/MAX_RNDR_DNSTY, 0, 1)), 0, 1, 0, 512)));		}	}}void dnstyRndr() //shows deferent colors based on speed{	int x, y;	int xLoc, yLoc;		double d;		for (y=0; y<IMG_HGHT; ++y)	{		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);				for (x=0; x<IMG_WDTH; ++x)		{			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);						d=area[yLoc][xLoc].d;						image[cycle][y][x]=hsl2rgb(clrHSL(0, 0, d*255/MAX_RNDR_DNSTY));		}	}}void avgDnstyRndr() //shows deferent colors based on speed{	int x, y;	int xLoc, yLoc;		double d;		for (y=0; y<IMG_HGHT; ++y)	{		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);				for (x=0; x<IMG_WDTH; ++x)		{			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);						d=area[yLoc][xLoc].dAvg;						image[cycle][y][x]=hsl2rgb(clrHSL(0, 0, d*255/(MAX_RNDR_DNSTY*(cycle+1))));		}	}}void inptPixMapRndr() //overlays the existing image with the input pixmap (what we created the shape from){	int x, y;		for (y=0; y<IMG_HGHT; ++y)	{		for (x=0; x<IMG_WDTH; ++x)		{			if (inptPixMap[y][x])				image[currentFrame][y][x]=INPT_PIX_MAP_CLR;			//else if (closeToEdge[y][x])				//blend(&image[currentFrame][y][x], CLOSE_TO_EDGE_CLR, 0.5);		}	}}void objDataRndr() //shows box around objects and data about them{	int i;	char text[256];		double l, r, b, t;		for (i=0; i<objNum; ++i)	{		l=obj[i].bbl*IMG_WDTH/WDTH;		r=obj[i].bbr*IMG_WDTH/WDTH;		b=obj[i].bbb*IMG_HGHT/HGHT;		t=obj[i].bbt*IMG_HGHT/HGHT;				if (USE_AVG_DRAG && clsnEdgeCycles<20)			strcpy(text, "Drag: Loading...");		else			{				sprintf(text, "Drag: %f", obj[i].drag);				text[11]=0;			}				txtRndr(text, (l+r)/2, b-20, 24, 1, TXT_CLR, 1, clr(0, 0, 0), 0.5);				drawImage.target(l, r, b, t, 6, clr(255, 255, 255), 0.5);	}}void flowLinesRndr() //renders lines to show particle flow{	int i;	double x, y;	double dx=0, dy=0, d;	int cntr; //puts an end to endless loops	const int CNTR_MAX=10000;	double thick;	Prtcl prtcl(0, 0, 0, 0, 0);		for (i=0; i<FLOW_LINE_NUM; ++i)	{		//prtcl.toDlt=0;		x=prtcl.x=WDTH/6;		y=prtcl.y=grdnt(i, -1, FLOW_LINE_NUM, 0, HGHT);		prtcl.dx=BASE_DX_RNDR;		prtcl.dy=BASE_DY_RNDR;				d=area[(int)y][(int)x].dAvg;		if (d)		{			dx=area[(int)y][(int)x].dxAvg/d;			dy=area[(int)y][(int)x].dyAvg/d;		}				cntr=0;				while (d && x>0 && x<WDTH && y>0 && y<HGHT && dx!=0 && dy!=0 && cntr<CNTR_MAX)		{			d=area[(int)y][(int)x].dAvg;						if (d)			{				dx=area[(int)y][(int)x].dxAvg/(d*4);				dy=area[(int)y][(int)x].dyAvg/(d*4);			}			else			{				dx=0; dy=0;			}						//clrNum=clamp(grdnt(dst(dx, dy), 0, MAX_RNDR_SPD, 0, 55), 0, 255);			thick=grdnt(d/(cycle+1), 0, MAX_RNDR_DNSTY, 0, MAX_FLOW_LINE_THICK);						//drawLine(x, y, x+dx, y+dy, thick*2, clr(255, 255, 255));			drawImage.line(mkXYint(x*IMG_WDTH/WDTH, y*IMG_HGHT/HGHT), mkXYint((x+dx)*IMG_WDTH/WDTH, (y+dy)*IMG_HGHT/HGHT), thick, FLOW_LINES_CLR);						x+=dx; y+=dy;						prtcl.x=x;			prtcl.y=y;			prtcl.dx=dx;			prtcl.dy=dy;						prtcl.clsnEdgeEffct();			//prtcl.boxEffct();						x=prtcl.x;			y=prtcl.y;						++cntr;		}	}}/*void prtclPathRndr() //like flow lines but does not use average area data and is more realistic but less pretty{	int i;	double x, y;	Prtcl prtcl(0, 0, 0, 0, 0);		for (i=0; i<FLOW_LINE_NUM; ++i)	{		x=prtcl.x=WDTH/12;		y=prtcl.y=grdnt(i, -1, FLOW_LINE_NUM, 0, HGHT);		prtcl.dx=BASE_DX_RNDR;		prtcl.dy=BASE_DY_RNDR;				while (prtcl.isInArea())		{			drawImage.line(prtcl.x*IMG_WDTH/WDTH, prtcl.y*IMG_HGHT/HGHT, x*IMG_WDTH/WDTH, y*IMG_HGHT/HGHT, 3, clr(255, 255, 255));						x=prtcl.x;			y=prtcl.y;						prtcl.prtclFrctnEffct();			prtcl.dnstyEffct();			prtcl.rndmEffct();						prtcl.x+=prtcl.dx;			prtcl.y+=prtcl.dy;						prtcl.clsnEdgeEffct();		}	}}*/
-void clsnEdgeRndr(){	ClsnEdge *ptr;	double xf, yf;	RGBpix color;		ptr=frstClsnEdge;		while (ptr)	{		xf=ptr->xf/(clsnEdgeCycles*dst(ptr->x2-ptr->x1, ptr->y2-ptr->y1)*STRT_DNSTY);		yf=ptr->yf/(clsnEdgeCycles*dst(ptr->x2-ptr->x1, ptr->y2-ptr->y1)*STRT_DNSTY);				if (FRCE_ON_EDGES_RNDR)		{			//color=hsl2rgb(clrHSL(atan2(yf, xf)*765/PI, clamp(sqrt(dst(xf, yf))*CLSN_EDGE_FRCE_FCTR, 0, 255), 255));			color=hsl2rgb(clrHSL(rgb2hsl(CLSN_EDGE_CLR).h, rgb2hsl(CLSN_EDGE_CLR).s, clamp(sqrt(dst(xf, yf))*CLSN_EDGE_FRCE_FCTR*2, 0, 512)));		}		else			color=CLSN_EDGE_CLR;				drawImage.line(	mkXYint(grdnt(ptr->x1, 0, WDTH, 0, IMG_WDTH),						grdnt(ptr->y1, 0, HGHT, 0, IMG_HGHT)),						mkXYint(grdnt(ptr->x2, 0, WDTH, 0, IMG_WDTH),						grdnt(ptr->y2, 0, HGHT, 0, IMG_HGHT)),						CLSN_EDGE_THICK, color);				if (CLSN_EDGE_VERTS_RNDR)		{			drawImage.circle(mkXYint(grdnt(ptr->x1, 0, WDTH, 0, IMG_WDTH), grdnt(ptr->y1, 0, HGHT, 0, IMG_HGHT)), CLSN_EDGE_VERTS_RNDR, VERT_CLR);			drawImage.circle(mkXYint(grdnt(ptr->x2, 0, WDTH, 0, IMG_WDTH), grdnt(ptr->y2, 0, HGHT, 0, IMG_HGHT)), CLSN_EDGE_VERTS_RNDR, VERT_CLR);		}				ptr=ptr->nxt;	}}void txtRndr(const char *text, double x, double y, int pixSize, bool center, RGBpix color, double alpha, RGBpix bkndClr, double bkndAlpha){	y=IMG_HGHT-y;		alpha=clamp(alpha, 0, 1);	bkndAlpha=clamp(bkndAlpha, 0, 1);		sf::Text txt;	txt.setFont(font);	txt.setCharacterSize(pixSize); // in pixels, not points!	txt.setColor(sf::Color(color.r, color.g, color.b, alpha*255));	txt.setString(text);		if (center)	{		sf::FloatRect centerRect = txt.getLocalBounds();		txt.setOrigin(centerRect.width/2, centerRect.height/2);	}		txt.setPosition(x, y);		sf::FloatRect textRect = txt.getGlobalBounds();		sf::RectangleShape bknd(sf::Vector2f(textRect.width+pixSize*0.6, textRect.height+pixSize*0.6));		if (bkndAlpha==0)		bknd.setFillColor(sf::Color(color.r, color.g, color.b, 0));	else		bknd.setFillColor(sf::Color(bkndClr.r, bkndClr.g, bkndClr.b, bkndAlpha*255));	//bknd.setOutlineColor(sf::Color(192, 192, 192, 255));	//bknd.setOutlineThickness(4);	bknd.move(textRect.left-pixSize*0.3, textRect.top-pixSize*0.3);		sfmlTxtr.draw(bknd);	sfmlTxtr.draw(txt);}void sfmlTxtrCmpst() //composites the sfml render texture onto the normal image for display or saving {	int x, y;	int yFactor, offset;	sf::Uint8 *bits;	
-	sf::Image sfmlImg;	bits=(sf::Uint8 *)(sfmlImg=(sfmlTxtr.getTexture().copyToImage())).getPixelsPtr();		for (y=0; y<IMG_HGHT; ++y)	{		yFactor=y*IMG_WDTH;				for (x=0; x<IMG_WDTH; ++x)		{			offset=(yFactor+x)*4;						if (*(bits+offset+3)>0)				{					if (*(bits+offset+3)==255)						image[currentFrame][y][x]=clr(*(bits+offset), *(bits+offset+1), *(bits+offset+2));										else						blend(&image[currentFrame][y][x], clr(*(bits+offset), *(bits+offset+1), *(bits+offset+2)), (*(bits+offset+3))/255.0);				}		}	}		sfmlTxtr.clear(sf::Color::Transparent);}
+#include "Graphics.h"
+#include "Particle.h"
+#include "ShapeLoader.h"
+#include <SFML/Graphics.hpp>
+
+RGBpix image[FRAME_NUM][IMG_HGHT][IMG_WDTH];
+bool inptPixMap[IMG_HGHT][IMG_WDTH]; //the result of ShapeLoader
+WidapImage drawImage(IMG_WDTH, IMG_HGHT, &image[0][0][0]); //an image to draw to, is updated to the current frame automatically
+sf::RenderTexture sfmlTxtr; //used for rendering text
+extern sf::Font font;
+
+void rndr()
+{
+	if (RNDR_TYPE==1)
+	{
+		if (!AVG_DATA_RNDR)
+			drctnRndr();
+		else
+			avgDrctnRndr();
+	}
+	else if (RNDR_TYPE==2)
+	{
+		if (!AVG_DATA_RNDR)
+			velRndr();
+		else
+			avgVelRndr();
+
+	}
+	else if (RNDR_TYPE==3)
+	{
+		if (!AVG_DATA_RNDR)
+			dnstyRndr();
+		else
+			avgDnstyRndr();
+
+	}
+	else
+		std::cout << "!! RNDR_TYPE invalid !!\n";
+
+	if (CLSN_EDGE_RNDR)
+		clsnEdgeRndr();
+
+	if (INPT_PIX_MAP_RNDR)
+		inptPixMapRndr();
+
+	if (OBJ_DATA_RNDR)
+		objDataRndr();
+
+	if (FLOW_LINES_RNDR)
+		flowLinesRndr();
+
+	sfmlTxtrCmpst();
+
+	//drawImage.circle(300, 200, 5, clr(255, 255, 255));
+	//drawImage.line(301, 200, 301, 400, 1, clr(255, 0, 255));
+	//image[currentFrame][200][300]=clr(0, 255, 255);
+}
+
+void rndrInit()
+{
+	sfmlTxtr.create(IMG_WDTH, IMG_HGHT);
+	sfmlTxtr.clear(sf::Color::Transparent);
+	sfmlTxtr.setSmooth(0);
+}
+
+void drctnRndr() //uses rainbow colors to show movement direction and velocity
+{
+	int x, y;
+	int xLoc, yLoc;
+
+	double d, dx, dy;
+	double dist, ang;
+
+	for (y=0; y<IMG_HGHT; ++y)
+	{
+		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);
+
+		for (x=0; x<IMG_WDTH; ++x)
+		{
+			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);
+
+			d=area[yLoc][xLoc].d;
+
+			if (d)
+			{
+				dx=area[yLoc][xLoc].dx/d-BASE_DX_RNDR;
+				dy=area[yLoc][xLoc].dy/d-BASE_DY_RNDR;
+			}
+			else
+			{
+				dx=0; dy=0;
+			}
+
+			dist=dst(dx, dy);
+
+			ang=rad2deg(atan2(dy, dx))+180;
+
+			image[cycle][y][x]=hsl2rgb(clrHSL(ang*4.25, clamp(dist*255/MAX_RNDR_SPD, 0, 255), d*255/MAX_RNDR_DNSTY));
+		}
+	}
+}
+
+void avgDrctnRndr() //uses rainbow colors to show average movement direction and velocity
+{
+	int x, y;
+	int xLoc, yLoc;
+
+	double d, dx, dy;
+	double dist, ang;
+
+	for (y=0; y<IMG_HGHT; ++y)
+	{
+		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);
+
+		for (x=0; x<IMG_WDTH; ++x)
+		{
+			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);
+
+			d=area[yLoc][xLoc].dAvg;
+
+			if (d)
+			{
+				dx=area[yLoc][xLoc].dxAvg/area[yLoc][xLoc].dAvg-BASE_DX_RNDR;
+				dy=area[yLoc][xLoc].dyAvg/area[yLoc][xLoc].dAvg-BASE_DY_RNDR;
+			}
+			else
+			{
+				dx=0; dy=0;
+			}
+
+			dist=dst(dx, dy);
+
+			ang=rad2deg(atan2(dy, dx));
+
+			image[cycle][y][x]=hsl2rgb(clrHSL(ang*4.25, clamp(dist*255/MAX_RNDR_SPD, 0, 255), d*255/(MAX_RNDR_DNSTY*(cycle+1))));
+		}
+	}
+}
+
+void velRndr() //shows deferent colors based on speed
+{
+	int x, y;
+	int xLoc, yLoc;
+
+	double d, dx, dy;
+	double dist;
+
+	for (y=0; y<IMG_HGHT; ++y)
+	{
+		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);
+
+		for (x=0; x<IMG_WDTH; ++x)
+		{
+			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);
+
+			d=area[yLoc][xLoc].d;
+
+			if (d)
+			{
+				dx=area[yLoc][xLoc].dx/area[yLoc][xLoc].d-BASE_DX_RNDR;
+				dy=area[yLoc][xLoc].dy/area[yLoc][xLoc].d-BASE_DY_RNDR;
+			}
+			else
+			{
+				dx=0; dy=0;
+			}
+
+			dist=dst(dx, dy);
+
+			image[cycle][y][x]=hsl2rgb(clrHSL(grdnt(clamp(dist, 0, MAX_RNDR_SPD), 0, MAX_RNDR_SPD, 255*4, 0), 255, d*255/MAX_RNDR_DNSTY));
+		}
+	}
+}
+
+void avgVelRndr() //shows deferent colors based on speed
+{
+	int x, y;
+	int xLoc, yLoc;
+
+	double d, dx, dy;
+	double dist;
+
+	for (y=0; y<IMG_HGHT; ++y)
+	{
+		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);
+
+		for (x=0; x<IMG_WDTH; ++x)
+		{
+			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);
+
+			d=area[yLoc][xLoc].dAvg;
+
+			if (d)
+			{
+				dx=area[yLoc][xLoc].dxAvg/d-BASE_DX_RNDR;
+				dy=area[yLoc][xLoc].dyAvg/d-BASE_DY_RNDR;
+				d/=cycle+1;
+			}
+			else
+			{
+				dx=0; dy=0;
+			}
+
+			dist=dst(dx, dy);
+
+			image[cycle][y][x]=hsl2rgb(clrHSL(grdnt(clamp(dist, 0, MAX_RNDR_SPD), 0, MAX_RNDR_SPD, 255*4, 0), 255, grdnt(sqrt(clamp(d/MAX_RNDR_DNSTY, 0, 1)), 0, 1, 0, 512)));
+		}
+	}
+}
+
+void dnstyRndr() //shows deferent colors based on speed
+{
+	int x, y;
+	int xLoc, yLoc;
+
+	double d;
+
+	for (y=0; y<IMG_HGHT; ++y)
+	{
+		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);
+
+		for (x=0; x<IMG_WDTH; ++x)
+		{
+			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);
+
+			d=area[yLoc][xLoc].d;
+
+			image[cycle][y][x]=hsl2rgb(clrHSL(0, 0, d*255/MAX_RNDR_DNSTY));
+		}
+	}
+}
+
+void avgDnstyRndr() //shows deferent colors based on speed
+{
+	int x, y;
+	int xLoc, yLoc;
+
+	double d;
+
+	for (y=0; y<IMG_HGHT; ++y)
+	{
+		yLoc=grdnt(y, 0, IMG_HGHT, 0, HGHT);
+
+		for (x=0; x<IMG_WDTH; ++x)
+		{
+			xLoc=grdnt(x, 0, IMG_WDTH, 0, WDTH);
+
+			d=area[yLoc][xLoc].dAvg;
+
+			image[cycle][y][x]=hsl2rgb(clrHSL(0, 0, d*255/(MAX_RNDR_DNSTY*(cycle+1))));
+		}
+	}
+}
+
+void inptPixMapRndr() //overlays the existing image with the input pixmap (what we created the shape from)
+{
+	int x, y;
+
+	for (y=0; y<IMG_HGHT; ++y)
+	{
+		for (x=0; x<IMG_WDTH; ++x)
+		{
+			if (inptPixMap[y][x])
+				image[currentFrame][y][x]=INPT_PIX_MAP_CLR;
+			//else if (closeToEdge[y][x])
+				//blend(&image[currentFrame][y][x], CLOSE_TO_EDGE_CLR, 0.5);
+		}
+	}
+}
+
+void objDataRndr() //shows box around objects and data about them
+{
+	int i;
+	char text[256];
+
+	double l, r, b, t;
+
+	for (i=0; i<objNum; ++i)
+	{
+		l=obj[i].bbl*IMG_WDTH/WDTH;
+		r=obj[i].bbr*IMG_WDTH/WDTH;
+		b=obj[i].bbb*IMG_HGHT/HGHT;
+		t=obj[i].bbt*IMG_HGHT/HGHT;
+
+		if (USE_AVG_DRAG && clsnEdgeCycles<20)
+			strcpy(text, "Drag: Loading...");
+		else
+			{
+				sprintf(text, "Drag: %f", obj[i].drag);
+				text[11]=0;
+			}
+
+		txtRndr(text, (l+r)/2, b-20, 24, 1, TXT_CLR, 1, clr(0, 0, 0), 0.5);
+
+		drawImage.target(l, r, b, t, 6, clr(255, 255, 255), 0.5);
+	}
+}
+
+void flowLinesRndr() //renders lines to show particle flow
+{
+	int i;
+	double x, y;
+	double dx=0, dy=0, d;
+	int cntr; //puts an end to endless loops
+	const int CNTR_MAX=10000;
+	double thick;
+	Prtcl prtcl(0, 0, 0, 0, 0);
+
+	for (i=0; i<FLOW_LINE_NUM; ++i)
+	{
+		//prtcl.toDlt=0;
+		x=prtcl.x=WDTH/6;
+		y=prtcl.y=grdnt(i, -1, FLOW_LINE_NUM, 0, HGHT);
+		prtcl.dx=BASE_DX_RNDR;
+		prtcl.dy=BASE_DY_RNDR;
+
+		d=area[(int)y][(int)x].dAvg;
+		if (d)
+		{
+			dx=area[(int)y][(int)x].dxAvg/d;
+			dy=area[(int)y][(int)x].dyAvg/d;
+		}
+
+		cntr=0;
+
+		while (d && x>0 && x<WDTH && y>0 && y<HGHT && dx!=0 && dy!=0 && cntr<CNTR_MAX)
+		{
+			d=area[(int)y][(int)x].dAvg;
+
+			if (d)
+			{
+				dx=area[(int)y][(int)x].dxAvg/(d*4);
+				dy=area[(int)y][(int)x].dyAvg/(d*4);
+			}
+			else
+			{
+				dx=0; dy=0;
+			}
+
+			//clrNum=clamp(grdnt(dst(dx, dy), 0, MAX_RNDR_SPD, 0, 55), 0, 255);
+			thick=grdnt(d/(cycle+1), 0, MAX_RNDR_DNSTY, 0, MAX_FLOW_LINE_THICK);
+
+			//drawLine(x, y, x+dx, y+dy, thick*2, clr(255, 255, 255));
+			drawImage.line(mkXYint(x*IMG_WDTH/WDTH, y*IMG_HGHT/HGHT), mkXYint((x+dx)*IMG_WDTH/WDTH, (y+dy)*IMG_HGHT/HGHT), thick, FLOW_LINES_CLR);
+
+			x+=dx; y+=dy;
+
+			prtcl.x=x;
+			prtcl.y=y;
+			prtcl.dx=dx;
+			prtcl.dy=dy;
+
+			prtcl.clsnEdgeEffct();
+			//prtcl.boxEffct();
+
+			x=prtcl.x;
+			y=prtcl.y;
+
+			++cntr;
+		}
+	}
+}
+
+/*void prtclPathRndr() //like flow lines but does not use average area data and is more realistic but less pretty
+{
+	int i;
+	double x, y;
+	Prtcl prtcl(0, 0, 0, 0, 0);
+
+	for (i=0; i<FLOW_LINE_NUM; ++i)
+	{
+		x=prtcl.x=WDTH/12;
+		y=prtcl.y=grdnt(i, -1, FLOW_LINE_NUM, 0, HGHT);
+		prtcl.dx=BASE_DX_RNDR;
+		prtcl.dy=BASE_DY_RNDR;
+
+		while (prtcl.isInArea())
+		{
+			drawImage.line(prtcl.x*IMG_WDTH/WDTH, prtcl.y*IMG_HGHT/HGHT, x*IMG_WDTH/WDTH, y*IMG_HGHT/HGHT, 3, clr(255, 255, 255));
+
+			x=prtcl.x;
+			y=prtcl.y;
+
+			prtcl.prtclFrctnEffct();
+			prtcl.dnstyEffct();
+			prtcl.rndmEffct();
+
+			prtcl.x+=prtcl.dx;
+			prtcl.y+=prtcl.dy;
+
+			prtcl.clsnEdgeEffct();
+		}
+	}
+}
+*/
+
+void clsnEdgeRndr()
+{
+	ClsnEdge *ptr;
+	double xf, yf;
+	RGBpix color;
+
+	ptr=frstClsnEdge;
+
+	while (ptr)
+	{
+		xf=ptr->xf/(clsnEdgeCycles*dst(ptr->x2-ptr->x1, ptr->y2-ptr->y1)*STRT_DNSTY);
+		yf=ptr->yf/(clsnEdgeCycles*dst(ptr->x2-ptr->x1, ptr->y2-ptr->y1)*STRT_DNSTY);
+
+		if (FRCE_ON_EDGES_RNDR)
+		{
+			//color=hsl2rgb(clrHSL(atan2(yf, xf)*765/PI, clamp(sqrt(dst(xf, yf))*CLSN_EDGE_FRCE_FCTR, 0, 255), 255));
+			color=hsl2rgb(clrHSL(rgb2hsl(CLSN_EDGE_CLR).h, rgb2hsl(CLSN_EDGE_CLR).s, clamp(sqrt(dst(xf, yf))*CLSN_EDGE_FRCE_FCTR*2, 0, 512)));
+		}
+		else
+			color=CLSN_EDGE_CLR;
+
+		drawImage.line(	mkXYint(grdnt(ptr->x1, 0, WDTH, 0, IMG_WDTH),
+						grdnt(ptr->y1, 0, HGHT, 0, IMG_HGHT)),
+						mkXYint(grdnt(ptr->x2, 0, WDTH, 0, IMG_WDTH),
+						grdnt(ptr->y2, 0, HGHT, 0, IMG_HGHT)),
+						CLSN_EDGE_THICK, color);
+
+		if (CLSN_EDGE_VERTS_RNDR)
+		{
+			drawImage.circle(mkXYint(grdnt(ptr->x1, 0, WDTH, 0, IMG_WDTH), grdnt(ptr->y1, 0, HGHT, 0, IMG_HGHT)), CLSN_EDGE_VERTS_RNDR, VERT_CLR);
+			drawImage.circle(mkXYint(grdnt(ptr->x2, 0, WDTH, 0, IMG_WDTH), grdnt(ptr->y2, 0, HGHT, 0, IMG_HGHT)), CLSN_EDGE_VERTS_RNDR, VERT_CLR);
+		}
+
+		ptr=ptr->nxt;
+	}
+}
+
+void txtRndr(const char *text, double x, double y, int pixSize, bool center, RGBpix color, double alpha, RGBpix bkndClr, double bkndAlpha)
+{
+	y=IMG_HGHT-y;
+
+	alpha=clamp(alpha, 0, 1);
+	bkndAlpha=clamp(bkndAlpha, 0, 1);
+
+	sf::Text txt;
+	txt.setFont(font);
+	txt.setCharacterSize(pixSize); // in pixels, not points!
+	txt.setColor(sf::Color(color.r, color.g, color.b, alpha*255));
+	txt.setString(text);
+
+	if (center)
+	{
+		sf::FloatRect centerRect = txt.getLocalBounds();
+		txt.setOrigin(centerRect.width/2, centerRect.height/2);
+	}
+
+	txt.setPosition(x, y);
+
+	sf::FloatRect textRect = txt.getGlobalBounds();
+
+	sf::RectangleShape bknd(sf::Vector2f(textRect.width+pixSize*0.6, textRect.height+pixSize*0.6));
+
+	if (bkndAlpha==0)
+		bknd.setFillColor(sf::Color(color.r, color.g, color.b, 0));
+	else
+		bknd.setFillColor(sf::Color(bkndClr.r, bkndClr.g, bkndClr.b, bkndAlpha*255));
+	//bknd.setOutlineColor(sf::Color(192, 192, 192, 255));
+	//bknd.setOutlineThickness(4);
+	bknd.move(textRect.left-pixSize*0.3, textRect.top-pixSize*0.3);
+
+	sfmlTxtr.draw(bknd);
+	sfmlTxtr.draw(txt);
+}
+
+void sfmlTxtrCmpst() //composites the sfml render texture onto the normal image for display or saving
+{
+	int x, y;
+	int yFactor, offset;
+	sf::Uint8 *bits;
+	sf::Image sfmlImg;
+	bits=(sf::Uint8 *)(sfmlImg=(sfmlTxtr.getTexture().copyToImage())).getPixelsPtr();
+
+	for (y=0; y<IMG_HGHT; ++y)
+	{
+		yFactor=y*IMG_WDTH;
+
+		for (x=0; x<IMG_WDTH; ++x)
+		{
+			offset=(yFactor+x)*4;
+
+			if (*(bits+offset+3)>0)
+				{
+					if (*(bits+offset+3)==255)
+						image[currentFrame][y][x]=clr(*(bits+offset), *(bits+offset+1), *(bits+offset+2));
+
+					else
+						blend(&image[currentFrame][y][x], clr(*(bits+offset), *(bits+offset+1), *(bits+offset+2)), (*(bits+offset+3))/255.0);
+				}
+		}
+	}
+
+	sfmlTxtr.clear(sf::Color::Transparent);
+}
